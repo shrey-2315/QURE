@@ -1,86 +1,86 @@
-# QURE: Query Understanding via Retrieval Ensembles
+# QURE: A Reasoning-Enhanced RAG Pipeline for Text-to-SQL Generation
 
-*A Modular and Interpretable Text-to-SQL Framework with STaR Reasoning*
-
----
-
-## 🧠 Overview
-
-**QURE** is a **modular** and **interpretable** framework for **Text-to-SQL generation**, designed to overcome critical limitations of current end-to-end LLM systems in real-world NLIDB (Natural Language Interface to Databases) scenarios.
-
-Instead of directly mapping a question to SQL, QURE introduces an **explicit reasoning stage** that generates **natural language rationales** using a **STaR-trained LLaMA model**. These rationales act as validated blueprints for SQL generation using fine-tuned **SQLCoder** models specialized for different SQL structures (e.g., CTEs, subqueries).
+QURE is a modular **Retrieval-Augmented Generation (RAG)** based framework for converting natural language questions into accurate SQL queries. It features structured reasoning, complexity-aware model routing, and feedback integration.
 
 ---
 
-## 🔍 Motivation
+## 🧠 Architecture Overview
 
-Despite advances in LLM-based Text-to-SQL synthesis, existing systems face key challenges:
+The system follows a structured multi-stage pipeline:
 
-* ❌ Poor semantic alignment between NL queries and database schemas
-* ❌ Low generalization to unseen databases
-* ❌ Fragile SQL generation for complex structures (CTEs, subqueries)
-* ❌ Lack of interpretability in enterprise settings
+### 1. **NLP Question Input**
+User inputs a natural language question.
 
-**QURE** addresses these through:
+### 2. **QURE RAG Module**
+Retrieves:
+- Top-K semantically similar solved examples
+- Associated database schema
 
-* ✨ **Modularity** (reasoning + generation separation)
-* 🔄 **Hybrid retrieval (BM25 + Dense)** for context and schema grounding
-* 📜 **Natural language rationales** (via STaR) for transparency
-* 🧹 **Structure-aware generation** with SQLCoder routing
-* 🧪 **Execution-free metrics** for robust evaluation
+### 3. **Reasoning Module**
+Processes:
+- Retrieved examples
+- Schema
+- Input question
 
+Generates:
+- Rationale Output
+- Query Plan
+- Complexity Decision
 
+### 4. **Complexity Decision**
+Determines whether the question needs a simple or complex SQL query.
 
+### 5. **Model Routing**
+- If **complex**, routes to `SQLCoder-70B-alpha (CTEs)`
+- If **simple**, routes to `SQLCoder-7B (Subqueries)`
 
-## 🧠 Key Concepts Used
+### 6. **SQL Execution**
+The selected model generates SQL, which is then executed on the **target database**.
 
-### ✅ Self-Taught Reasoner (STaR)
-
-Iteratively teaches the model to generate better rationales using its own past mistakes and corrected generations.
-
-### 🧠 Natural Language Rationale Generation
-
-Instead of SQL-first generation, QURE explains the **thought process** in plain English before synthesizing SQL.
-
-### 📚 Hybrid Retrieval
-
-Combines **BM25 sparse** search with **dense embeddings** (e.g., from BGE) to fetch both:
-
-* Relevant **schema elements**
-* Few-shot **example prompts**
-
-### ⚙️ Structural Routing
-
-Uses validated rationale to classify the instruction into **CTE** or **subquery**, and routes it to the **appropriate SQLCoder model**.
-
-
-
-## 📊 Evaluation
-
-QURE is evaluated using **execution-free** and **structure-aware** metrics:
-
-* 🧹 **AST(TE)**: Tree Edit Distance between Abstract Syntax Trees
-* 🧠 **ETM**: Enhanced Tree Matching (schema-aware)
-* 📏 **CodeBERTScore**: Semantic match of generated SQL
-* 🔀 **RelPM**, **ASTPM** (reproduced from Spider/BIRD benchmarks)
+### 7. **Error Check & Feedback Loop**
+- If there's an error in SQL execution, it routes back to the reasoning module.
+- If successful, the result is shown to the **user**.
+- Optional feedback is collected to improve future performance.
 
 ---
 
-## 📦 Requirements
+## 🔁 Feedback Loop
+The pipeline supports continuous improvement by:
+- Detecting SQL execution failures
+- Looping back to the Reasoning Module for correction
+- Collecting user feedback post successful execution
 
-* Python ≥ 3.10
-* Transformers ≥ 4.39
-* `peft`, `bitsandbytes`, `datasets`, `accelerate`, `tqdm`
-* GPU with ≥16GB VRAM recommended
-* Hugging Face token (set via `HF_TOKEN` in `config.py`)
+---
 
-Install all dependencies:
+## 💡 Components
 
-```bash
-pip install -r requirements.txt
-```
+| Module              | Description                                      |
+|---------------------|--------------------------------------------------|
+| QURE RAG Module     | Hybrid retriever (dense + BM25) for examples and schema |
+| Reasoning Module    | LLaMA-3.1-8B fine-tuned on rationale generation |
+| SQLCoder-7B         | Generates subqueries for simple instructions     |
+| SQLCoder-70B-alpha  | Handles CTEs and complex SQL structures          |
+| Feedback System     | Collects user feedback for iterative learning    |
+
+---
+
+## 📦 Technologies Used
+
+- Python, Transformers (Hugging Face)
+- LLaMA-3.1-8B (reasoning)
+- SQLCoder models (Fine-tuned 7B & 70B variants)
+- Retrieval (BM25 + Dense)
+- Flask / FastAPI (optional API backend)
+- SQLite / Postgres (as database engine)
+
+---
+
+## 📌 Use Cases
+
+- Complex question-to-SQL translation
+- Interactive data querying with reasoning trace
+- Multi-step query generation with control
 
 
+[MIT License](LICENSE)
 
-
-This project is licensed under the MIT License.
